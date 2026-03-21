@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kuyavan Pottery Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  NAVIGATION                                                     -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<nav id="main-nav">
+  <div class="nav-inner">
+    <div class="nav-logo" onclick="showPage('home')">
+      <div class="logo-mark">
+        <img src="/static/assets/logo.png" alt="Kuyavan Pottery Studio logo" class="brand-logo">
+      </div>
+      <div><span class="logo-text">Kuyavan</span><span class="logo-sub">Pottery Studio</span></div>
+    </div>
+    <ul class="nav-links">
+      <li><a onclick="showPage('home')">Home</a></li>
+      <li><a onclick="showPage('shop')">Shop</a></li>
+      <li><a onclick="scrollToStory()">Our Story</a></li>
+      <li><a onclick="showPage('admin-login')" style="color:var(--muted);font-size:.85rem;">Admin</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="nav-user-btn" id="nav-auth-btn" onclick="openAuthModal()">Login / Register</button>
+      <button class="cart-btn" onclick="openCart()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        Cart <span class="cart-count" id="cart-count">0</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  HOME PAGE                                                      -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <div class="hero-inner">
+      <div>
+        <span class="hero-badge">Handcrafted in India since 2022</span>
+        <h1>Art Born From<br><em>Earth &amp; Fire</em></h1>
+        <p>Every piece from Kuyavan Pottery Studio carries the warmth of ancient terracotta traditions — shaped by hand, fired with love, delivered to your home.</p>
+        <div class="hero-ctas">
+          <button class="btn-primary" onclick="showPage('shop')">Explore Collection</button>
+          <button class="btn-outline" onclick="scrollToStory()">Our Craft</button>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><strong>500+</strong><span>Handcrafted Pieces</span></div>
+          <div class="hero-stat"><strong>10k+</strong><span>Happy Customers</span></div>
+          <div class="hero-stat"><strong>4+</strong><span>Years of Craft</span></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:center;align-items:center;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;transform:rotate(-3deg);">
+          <div id="hero-art-large" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:1.5rem;display:flex;align-items:center;justify-content:center;"></div>
+          <div id="hero-art-toy" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:1.5rem;display:flex;align-items:center;justify-content:center;margin-top:1.5rem;"></div>
+          <div id="hero-art-decor" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:1.5rem;display:flex;align-items:center;justify-content:center;"></div>
+          <div id="hero-art-small" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:1.5rem;display:flex;align-items:center;justify-content:center;margin-top:-1.5rem;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <div class="section-inner">
+      <div class="section-header">
+        <p class="section-label">Handpicked for You</p>
+        <h2 class="section-title">Featured Collection</h2>
+        <p class="section-desc">Each piece is individually crafted by our master artisans using traditional techniques passed down through generations.</p>
+      </div>
+      <div class="product-grid" id="featured-grid"><div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted);">Loading...</div></div>
+      <div style="text-align:center;margin-top:2.5rem;">
+        <button style="background:var(--terracotta);color:white;border:none;padding:.85rem 2rem;border-radius:var(--radius);font-family:'Karla',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:.05em;" onclick="showPage('shop')">View All Products →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="craft-section" id="our-story">
+    <div class="section-inner">
+      <div class="craft-grid">
+        <div>
+          <p class="section-label">Our Process</p>
+          <h2 class="section-title" style="text-align:left;">From Clay to Craft</h2>
+          <p style="color:var(--muted);margin:1rem 0 1.5rem;line-height:1.8;">Each Kuyavan pot begins as raw earth and becomes a piece of heritage — shaped, sun-dried, kiln-fired and hand-painted by our artisans in Tamil Nadu.</p>
+          <div class="craft-steps">
+            <div class="craft-step"><div class="step-num">1</div><div class="step-content"><h4>Raw Earth Selection</h4><p>We source fine terracotta clay from the banks of the Kaveri river.</p></div></div>
+            <div class="craft-step"><div class="step-num">2</div><div class="step-content"><h4>Hand Throwing</h4><p>Each pot is thrown on the wheel by skilled kuyavars with decades of experience.</p></div></div>
+            <div class="craft-step"><div class="step-num">3</div><div class="step-content"><h4>Sun Drying &amp; Kiln Firing</h4><p>Pieces are slow-dried, then fired at 900°C in traditional wood-fired kilns.</p></div></div>
+            <div class="craft-step"><div class="step-num">4</div><div class="step-content"><h4>Hand Painting &amp; Finishing</h4><p>Natural pigments and traditional motifs are applied by hand — no two pieces alike.</p></div></div>
+          </div>
+        </div>
+        <div style="background:var(--sand-deep);border-radius:var(--radius-lg);padding:3rem;display:flex;align-items:center;justify-content:center;min-height:380px;">
+          <svg viewBox="0 0 200 200" width="200" height="200" xmlns="http://www.w3.org/2000/svg"><ellipse cx="100" cy="160" rx="70" ry="12" fill="rgba(139,69,19,.15)"/><path d="M75 150 Q60 130 62 100 Q65 60 80 45 Q90 35 100 35 Q110 35 120 45 Q135 60 138 100 Q140 130 125 150 Z" fill="#C4622D" opacity=".9"/><path d="M80 50 Q90 42 100 42 Q110 42 120 50" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2"/><ellipse cx="100" cy="148" rx="26" ry="6" fill="#A0522D"/><ellipse cx="100" cy="38" rx="18" ry="5" fill="#8B4513"/><path d="M82 80 Q100 72 118 80" fill="none" stroke="rgba(255,200,120,.5)" stroke-width="1.5"/><path d="M78 95 Q100 87 122 95" fill="none" stroke="rgba(255,200,120,.5)" stroke-width="1.5"/><circle cx="90" cy="65" r="4" fill="rgba(255,200,120,.6)"/><circle cx="110" cy="70" r="3" fill="rgba(255,200,120,.6)"/><circle cx="100" cy="120" r="5" fill="rgba(255,200,120,.6)"/></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-inner">
+      <div class="section-header"><p class="section-label">Customer Stories</p><h2 class="section-title">What People Say</h2></div>
+      <div class="testimonials-grid">
+        <div class="testimonial-card"><p class="testimonial-quote">"The terracotta planter I ordered is absolutely stunning. You can feel the craftsmanship in every detail."</p><div class="testimonial-author"><div class="author-avatar">PK</div><div><div class="author-name">Priya Krishnan</div><div class="author-loc">Chennai, Tamil Nadu</div></div></div></div>
+        <div class="testimonial-card"><p class="testimonial-quote">"Ordered the clay toy set for my daughter's birthday. These are heirlooms, not just toys. Beautifully made."</p><div class="testimonial-author"><div class="author-avatar">RM</div><div><div class="author-name">Ramesh Mohan</div><div class="author-loc">Bangalore, Karnataka</div></div></div></div>
+        <div class="testimonial-card"><p class="testimonial-quote">"The handmade pot with the traditional kolam pattern is a work of art. Fast delivery, excellent packaging."</p><div class="testimonial-author"><div class="author-avatar">ST</div><div><div class="author-name">Sunita Thakur</div><div class="author-loc">Mumbai, Maharashtra</div></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-brand-header">
+          <div class="footer-logo-mark">
+            <img src="/static/assets/logo.png" alt="Kuyavan Pottery Studio logo" class="footer-brand-logo">
+          </div>
+          <strong style="font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--clay-pale);">Kuyavan Pottery Studio</strong>
+        </div>
+        <p>Preserving the ancient art of terracotta pottery from Tamil Nadu. Every purchase supports traditional artisan families.</p>
+      </div>
+      <div class="footer-col"><h4>Shop</h4><ul><li><a onclick="filterCategory('pots')">Clay Pots</a></li><li><a onclick="filterCategory('toys')">Clay Toys</a></li><li><a onclick="filterCategory('decor')">Terracotta Decor</a></li></ul></div>
+      <div class="footer-col"><h4>Info</h4><ul><li><a>About Us</a></li><li><a>Care Instructions</a></li><li><a>Shipping Policy</a></li><li><a>Returns</a></li></ul></div>
+      <div class="footer-col"><h4>Contact</h4><ul><li><a>kuyavan@pottery.in</a></li><li><a>+91 98765 43210</a></li><li><a>Thanjavur, Tamil Nadu</a></li></ul></div>
+    </div>
+    <div class="footer-bottom"><span>© 2025 Kuyavan Pottery Studio. All rights reserved.</span><span>Made with ♥ in Tamil Nadu</span></div>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SHOP PAGE                                                      -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="page-shop" class="page">
+  <section>
+    <div class="section-inner">
+      <div class="section-header"><p class="section-label">Handcrafted Collection</p><h2 class="section-title">Our Products</h2></div>
+      <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="search-input" placeholder="Search pots, toys, decor..." oninput="filterProducts()"></div>
+      <div class="category-tabs" id="shop-tabs">
+        <button class="tab-btn active" onclick="setCategory('all',this)">All</button>
+        <button class="tab-btn" onclick="setCategory('pots',this)">Clay Pots</button>
+        <button class="tab-btn" onclick="setCategory('toys',this)">Clay Toys</button>
+        <button class="tab-btn" onclick="setCategory('decor',this)">Terracotta Decor</button>
+      </div>
+      <div class="product-grid" id="shop-grid"><div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted);">Loading...</div></div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  PRODUCT DETAIL PAGE                                            -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="page-detail" class="page">
+  <section><div class="section-inner"><button class="back-btn" onclick="goBack()">← Back</button><div class="detail-grid" id="detail-content"></div></div></section>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  CHECKOUT PAGE                                                  -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="page-checkout" class="page">
+  <section><div class="section-inner">
+    <button class="back-btn" onclick="openCart()">← Review Cart</button>
+    <div class="checkout-grid">
+      <div class="checkout-form">
+        <h2>Shipping Details</h2>
+        <div id="checkout-error"></div>
+        <div class="form-row">
+          <div class="form-group"><label>First Name *</label><input type="text" id="co-fname" placeholder="Arjun"></div>
+          <div class="form-group"><label>Last Name *</label><input type="text" id="co-lname" placeholder="Kumar"></div>
+        </div>
+        <div class="form-group"><label>Email Address *</label><input type="email" id="co-email" placeholder="arjun@email.com"></div>
+        <div class="form-group"><label>Phone Number *</label><input type="tel" id="co-phone" placeholder="+91 98765 43210"></div>
+        <div class="form-group"><label>Street Address *</label><input type="text" id="co-address" placeholder="123, MG Road"></div>
+        <div class="form-row">
+          <div class="form-group"><label>City *</label><input type="text" id="co-city" placeholder="Chennai"></div>
+          <div class="form-group"><label>PIN Code *</label><input type="text" id="co-pincode" placeholder="600001"></div>
+        </div>
+        <div class="form-group"><label>State *</label>
+          <select id="co-state"><option>Tamil Nadu</option><option>Karnataka</option><option>Kerala</option><option>Andhra Pradesh</option><option>Telangana</option><option>Maharashtra</option><option>Delhi</option><option>Gujarat</option><option>Rajasthan</option><option>West Bengal</option></select>
+        </div>
+        <h3 style="margin:1.5rem 0 1rem;font-size:1.1rem;">Payment Method</h3>
+        <div class="payment-methods">
+          <label class="payment-method selected" onclick="selectPayment(this,'online')"><input type="radio" name="payment" checked> <span>💳 Pay Online (Razorpay)</span></label>
+          <label class="payment-method" onclick="selectPayment(this,'cod')"><input type="radio" name="payment"> <span>🏠 Cash on Delivery</span></label>
+        </div>
+        <input type="hidden" id="co-payment" value="online">
+        <button class="place-order-btn" id="place-order-btn" onclick="placeOrder()">Place Order →</button>
+      </div>
+      <div>
+        <div class="order-summary">
+          <h3>Order Summary</h3>
+          <div id="checkout-items"></div>
+          <div class="summary-total"><span>Total</span><strong id="checkout-total">₹0</strong></div>
+          <p style="font-size:.78rem;color:var(--muted);margin-top:1rem;line-height:1.6;">Free shipping above ₹999. Estimated delivery: 5–7 business days.</p>
+        </div>
+      </div>
+    </div>
+  </div></section>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  ORDER SUCCESS                                                  -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="page-success" class="page">
+  <div class="order-success">
+    <div class="success-icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg></div>
+    <h2>Order Placed!</h2>
+    <p>Thank you for supporting traditional Indian craftsmanship. Your pottery is on its way.</p>
+    <div class="order-id-box" id="success-order-id">Order #KUY-2025-001</div>
+    <p style="font-size:.88rem;">Expected delivery: <strong>5–7 business days</strong>.</p>
+    <button class="continue-btn" onclick="showPage('shop')">Continue Shopping</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  ADMIN LOGIN                                                    -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="page-admin-login" class="page">
+  <div class="admin-login-page">
+    <div class="login-card">
+      <h2>Admin Login</h2>
+      <p>Kuyavan Pottery Studio Dashboard</p>
+      <div id="admin-login-error"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="admin-email" autocomplete="username"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="admin-pass" autocomplete="current-password" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+      <button class="login-btn" onclick="adminLogin()">Login to Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  ADMIN DASHBOARD                                               -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="page-admin" class="page">
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-brand"><p>Admin Panel</p><strong>Kuyavan Pottery</strong></div>
+      <ul class="admin-nav">
+        <li><a onclick="showAdminSection('dashboard')" id="nav-dashboard" class="active">📊 Dashboard</a></li>
+        <li><a onclick="showAdminSection('products')" id="nav-products">🏺 Products</a></li>
+        <li><a onclick="showAdminSection('orders')" id="nav-orders">📦 Orders</a></li>
+        <li><a onclick="adminLogout()" style="margin-top:2rem;">🚪 Logout</a></li>
+      </ul>
+    </aside>
+    <main class="admin-content">
+
+      <!-- DASHBOARD -->
+      <div id="admin-dashboard">
+        <div class="admin-topbar"><h1>Dashboard Overview</h1><span style="font-size:.85rem;color:var(--muted);" id="dash-updated">—</span></div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value" id="stat-revenue">—</div><div class="stat-change">From all orders</div></div>
+          <div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value" id="stat-orders">—</div><div class="stat-change">All time</div></div>
+          <div class="stat-card"><div class="stat-label">Products</div><div class="stat-value" id="stat-products">—</div><div class="stat-change">In catalogue</div></div>
+          <div class="stat-card"><div class="stat-label">Customers</div><div class="stat-value" id="stat-customers">—</div><div class="stat-change">Registered</div></div>
+        </div>
+        <div id="low-stock-alert" style="display:none;background:#FFF3E0;border:1px solid #FFCC80;border-radius:var(--radius);padding:1rem 1.2rem;margin-bottom:1.5rem;">
+          <strong style="color:#E65100;">⚠️ Low Stock Alert:</strong> <span id="low-stock-names" style="color:#E65100;font-size:.9rem;"></span>
+        </div>
+        <div class="admin-table">
+          <div style="padding:1.2rem 1.4rem;border-bottom:1px solid var(--sand-deep);"><h3 style="font-size:1rem;">Recent Orders</h3></div>
+          <table><thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th></tr></thead>
+          <tbody id="dash-orders-tbody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">Loading...</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- PRODUCTS -->
+      <div id="admin-products" style="display:none;">
+        <div class="admin-topbar"><h1>Manage Products</h1><button class="add-product-btn" onclick="openProductModal(null)">+ Add New Product</button></div>
+        <div id="admin-product-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.2rem;"></div>
+      </div>
+
+      <!-- ORDERS -->
+      <div id="admin-orders" style="display:none;">
+        <div class="admin-topbar">
+          <h1>All Orders</h1>
+          <select id="order-filter" onchange="loadAdminOrders()" style="padding:.5rem 1rem;border:1.5px solid var(--sand-deep);border-radius:var(--radius);font-family:'Karla',sans-serif;font-size:.85rem;background:var(--white);">
+            <option value="">All Statuses</option>
+            <option value="processing">Processing</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="admin-table">
+          <table><thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody id="admin-orders-tbody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem;">Loading...</td></tr></tbody></table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  MODALS                                                         -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal-card" style="position:relative;">
+    <button class="modal-close" onclick="closeAuthModal()">✕</button>
+    <h2 id="auth-modal-title">Welcome Back</h2>
+    <p id="auth-modal-sub">Sign in to your account</p>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tab-login" onclick="switchAuthTab('login')">Login</button>
+      <button class="modal-tab" id="tab-register" onclick="switchAuthTab('register')">Register</button>
+    </div>
+    <div id="auth-error" style="display:none;" class="api-error"></div>
+    <div id="login-form">
+      <div class="form-group"><label>Email</label><input type="email" id="auth-email" placeholder="you@email.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="auth-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()"></div>
+      <button class="modal-submit-btn" onclick="submitAuth()">Login</button>
+    </div>
+    <div id="register-form" style="display:none;">
+      <div class="form-group"><label>Full Name</label><input type="text" id="auth-name" placeholder="Arjun Kumar"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="auth-reg-email" placeholder="you@email.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="auth-reg-password" placeholder="At least 6 characters" onkeydown="if(event.key==='Enter')submitRegister()"></div>
+      <button class="modal-submit-btn" onclick="submitRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT EDIT MODAL -->
+<div class="prod-modal-overlay" id="prod-modal">
+  <div class="prod-modal-inner">
+    <div class="prod-modal-header">
+      <h3 id="prod-modal-title" style="font-size:1.2rem;">Edit Product</h3>
+      <button onclick="closeProdModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted);">✕</button>
+    </div>
+    <div class="prod-modal-body">
+      <input type="hidden" id="m-id">
+      <!-- Preview -->
+      <div style="background:var(--sand);border-radius:var(--radius);padding:1rem 1.2rem;margin-bottom:1.6rem;display:flex;align-items:center;gap:1rem;">
+        <div id="m-prev-img" style="width:56px;height:56px;background:var(--sand-deep);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;flex-shrink:0;"></div>
+        <div>
+          <div id="m-prev-name" style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:var(--dark);">Product Name</div>
+          <div id="m-prev-cat" style="font-size:.78rem;color:var(--terracotta);text-transform:uppercase;letter-spacing:.1em;margin-top:2px;">Category</div>
+          <div id="m-prev-price" style="font-size:.95rem;font-weight:700;color:var(--clay);margin-top:2px;">₹0</div>
+        </div>
+        <div style="margin-left:auto;text-align:right;">
+          <div id="m-prev-stock" style="font-size:.82rem;font-weight:600;"></div>
+          <div id="m-prev-stars" style="font-size:.8rem;color:var(--clay-light);margin-top:2px;"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Product Name *</label><input type="text" id="m-name" placeholder="Terracotta Water Pot" oninput="updateProdPreview()"></div>
+        <div class="form-group"><label>Price (₹) *</label><input type="number" id="m-price" placeholder="850" min="1" oninput="updateProdPreview()"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Category *</label>
+          <select id="m-category" onchange="updateProdPreview()">
+            <option value="pots">🏺 Clay Pots</option>
+            <option value="toys">🧸 Clay Toys</option>
+            <option value="decor">🪔 Terracotta Decor</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Stock Quantity *</label><input type="number" id="m-stock" placeholder="10" min="0" oninput="updateProdPreview()"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Artisan Name</label><input type="text" id="m-artisan" placeholder="Murugan Kuyavar"></div>
+        <div class="form-group"><label>Material</label><input type="text" id="m-material" placeholder="Terracotta"></div>
+      </div>
+      <div class="form-group">
+        <label>Product Photo</label>
+        <input type="file" id="m-image" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" onchange="handleProductImageChange(event)">
+        <div id="m-image-name" style="font-size:.78rem;color:var(--muted);margin-top:6px;">No image selected</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Size</label><input type="text" id="m-size" placeholder="Large (5L)"></div>
+        <div class="form-group"><label>Care Instructions</label><input type="text" id="m-care" placeholder="Soak before first use"></div>
+      </div>
+      <div class="form-group"><label>Description</label><textarea id="m-desc" rows="3" style="width:100%;padding:.75rem 1rem;border:1.5px solid var(--sand-deep);border-radius:var(--radius);font-family:'Karla',sans-serif;font-size:.95rem;resize:vertical;" placeholder="Describe this handcrafted piece..."></textarea></div>
+      <!-- Stars -->
+      <div class="form-group">
+        <label>Customer Rating</label>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
+          <span id="ms-1" onclick="setProdStars(1)" style="font-size:1.6rem;cursor:pointer;transition:transform .1s;">★</span>
+          <span id="ms-2" onclick="setProdStars(2)" style="font-size:1.6rem;cursor:pointer;transition:transform .1s;">★</span>
+          <span id="ms-3" onclick="setProdStars(3)" style="font-size:1.6rem;cursor:pointer;transition:transform .1s;">★</span>
+          <span id="ms-4" onclick="setProdStars(4)" style="font-size:1.6rem;cursor:pointer;transition:transform .1s;">★</span>
+          <span id="ms-5" onclick="setProdStars(5)" style="font-size:1.6rem;cursor:pointer;transition:transform .1s;">★</span>
+          <span id="m-stars-label" style="font-size:.85rem;color:var(--muted);margin-left:6px;"></span>
+        </div>
+        <input type="hidden" id="m-stars" value="5">
+      </div>
+      <!-- Visibility -->
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--sand);border-radius:var(--radius);padding:.9rem 1.1rem;margin-bottom:1.2rem;">
+        <div><div style="font-size:.9rem;font-weight:600;color:var(--dark);">Show on Website</div><div style="font-size:.78rem;color:var(--muted);">Hide to remove from shop without deleting</div></div>
+        <label style="position:relative;display:inline-block;width:46px;height:24px;cursor:pointer;">
+          <input type="checkbox" id="m-visible" checked onchange="syncToggle()">
+          <span id="m-toggle-track" style="position:absolute;inset:0;background:var(--sand-deep);border-radius:12px;transition:background .2s;pointer-events:none;"></span>
+          <span id="m-toggle-thumb" style="position:absolute;left:3px;top:3px;width:18px;height:18px;background:white;border-radius:50%;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);pointer-events:none;"></span>
+        </label>
+      </div>
+      <div id="prod-modal-error" style="display:none;" class="api-error"></div>
+      <div style="display:flex;gap:.8rem;">
+        <button id="prod-save-btn" onclick="saveProduct()" style="flex:1;background:var(--terracotta);color:white;border:none;padding:.9rem;border-radius:var(--radius);font-family:'Karla',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;transition:background .2s;">Save Product ✓</button>
+        <button onclick="closeProdModal()" style="background:none;border:1.5px solid var(--sand-deep);padding:.9rem 1.4rem;border-radius:var(--radius);cursor:pointer;font-family:'Karla',sans-serif;font-size:.9rem;color:var(--mid);">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="del-modal-overlay" id="del-modal">
+  <div style="background:var(--white);border-radius:var(--radius-lg);width:100%;max-width:380px;padding:2rem;text-align:center;box-shadow:0 16px 60px rgba(0,0,0,.25);margin:1rem;">
+    <div style="width:56px;height:56px;background:#FFEBEE;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.4rem;">🗑️</div>
+    <h3 style="font-size:1.2rem;margin-bottom:.5rem;">Delete Product?</h3>
+    <p id="del-modal-name" style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;"></p>
+    <div style="display:flex;gap:.8rem;justify-content:center;">
+      <button onclick="confirmDelete()" style="background:#C62828;color:white;border:none;padding:.75rem 1.5rem;border-radius:var(--radius);font-family:'Karla',sans-serif;font-weight:700;cursor:pointer;">Yes, Delete</button>
+      <button onclick="closeDelModal()" style="background:none;border:1.5px solid var(--sand-deep);padding:.75rem 1.5rem;border-radius:var(--radius);cursor:pointer;font-family:'Karla',sans-serif;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CART SIDEBAR -->
+<div class="cart-overlay" id="cart-overlay" onclick="closeCart()"></div>
+<div class="cart-sidebar" id="cart-sidebar">
+  <div class="cart-header"><h3>Your Cart</h3><button class="close-cart" onclick="closeCart()">✕</button></div>
+  <div class="cart-items" id="cart-items-container">
+    <div class="cart-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><p>Your cart is empty.</p></div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-total"><span>Subtotal</span><strong id="cart-total-val">₹0</strong></div>
+    <button class="checkout-btn" onclick="goToCheckout()">Proceed to Checkout →</button>
+  </div>
+</div>
+
+<!-- AI CHATBOT -->
+<button class="ai-chat-fab" onclick="toggleChat()"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg></button>
+<div class="ai-chat-window" id="ai-chat-window">
+  <div class="ai-chat-header">
+    <div class="logo-mark" style="width:32px;height:32px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M12 2C8 2 5 6 5 10c0 5.5 7 12 7 12s7-6.5 7-12c0-4-3-8-7-8z"/></svg></div>
+    <div><span>Kuyavan Assistant</span><small>AI-powered pottery guide</small></div>
+  </div>
+  <div class="ai-chat-msgs" id="chat-msgs"><div class="msg bot">Vanakkam! 🙏 Ask me anything about our handcrafted collection, care tips, shipping, or orders!</div></div>
+  <div class="ai-chat-input"><input type="text" id="chat-input" placeholder="Ask about our pottery..." onkeydown="if(event.key==='Enter')sendChat()"><button class="ai-send-btn" onclick="sendChat()">Send</button></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
+
+
+
