@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, render_template
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -124,7 +124,7 @@ class OrderItem(db.Model):
 
 @app.route('/')
 def index():
-    return send_from_directory(TEMPLATES_DIR, 'index.html')
+    return render_template('index.html')
 
 
 @app.route('/uploads/<path:filename>')
@@ -140,7 +140,7 @@ def frontend_routes(path):
         return send_from_directory(STATIC_DIR, path.replace('static/', '', 1))
     if path.startswith('uploads/'):
         return send_from_directory(UPLOADS_DIR, path.replace('uploads/', '', 1))
-    return send_from_directory(TEMPLATES_DIR, 'index.html')
+    return render_template('index.html')
 
 
 def gen_order_code():

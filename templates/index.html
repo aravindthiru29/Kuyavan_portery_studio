@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kuyavan Pottery Studio</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/style.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
@@ -16,7 +16,7 @@
   <div class="nav-inner">
     <div class="nav-logo" onclick="showPage('home')">
       <div class="logo-mark">
-        <img src="/static/assets/logo.png" alt="Kuyavan Pottery Studio logo" class="brand-logo">
+        <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Kuyavan Pottery Studio logo" class="brand-logo">
       </div>
       <div><span class="logo-text">Kuyavan</span><span class="logo-sub">Pottery Studio</span></div>
     </div>
@@ -118,7 +118,7 @@
       <div class="footer-brand">
         <div class="footer-brand-header">
           <div class="footer-logo-mark">
-            <img src="/static/assets/logo.png" alt="Kuyavan Pottery Studio logo" class="footer-brand-logo">
+            <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Kuyavan Pottery Studio logo" class="footer-brand-logo">
           </div>
           <strong style="font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--clay-pale);">Kuyavan Pottery Studio</strong>
         </div>
@@ -444,9 +444,10 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<script src="/static/js/app.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
+
 
 
 
