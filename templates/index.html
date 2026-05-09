@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kuyavan Pottery Studio</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/logo.png') }}">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 </head>
 <body>
 
@@ -24,7 +26,7 @@
       <li><a onclick="showPage('home')">Home</a></li>
       <li><a onclick="showPage('shop')">Shop</a></li>
       <li><a onclick="scrollToStory()">Our Story</a></li>
-      <li><a onclick="showPage('admin-login')" style="color:var(--muted);font-size:.85rem;">Admin</a></li>
+      <li id="nav-admin-link" style="display: none;"><a onclick="showPage('admin-login')" style="color:var(--muted);font-size:.85rem;">Admin</a></li>
     </ul>
     <div class="nav-actions">
       <button class="nav-user-btn" id="nav-auth-btn" onclick="openAuthModal()">Login / Register</button>
@@ -43,14 +45,14 @@
   <div class="hero">
     <div class="hero-inner">
       <div>
-        <span class="hero-badge">Handcrafted in India since 2022</span>
-        <h1>Art Born From<br><em>Earth &amp; Fire</em></h1>
+        <span class="hero-badge" data-aos="fade-up">Handcrafted in India since 2022</span>
+        <h1 data-aos="fade-up" data-aos-delay="100">Art Born From<br><em>Earth &amp; Fire</em></h1>
         <p>Every piece from Kuyavan Pottery Studio carries the warmth of ancient terracotta traditions — shaped by hand, fired with love, delivered to your home.</p>
-        <div class="hero-ctas">
+        <div class="hero-ctas" data-aos="fade-up" data-aos-delay="300">
           <button class="btn-primary" onclick="showPage('shop')">Explore Collection</button>
           <button class="btn-outline" onclick="scrollToStory()">Our Craft</button>
         </div>
-        <div class="hero-stats">
+        <div class="hero-stats" data-aos="fade-up" data-aos-delay="400">
           <div class="hero-stat"><strong>500+</strong><span>Handcrafted Pieces</span></div>
           <div class="hero-stat"><strong>10k+</strong><span>Happy Customers</span></div>
           <div class="hero-stat"><strong>4+</strong><span>Years of Craft</span></div>
@@ -69,12 +71,12 @@
 
   <section>
     <div class="section-inner">
-      <div class="section-header">
+      <div class="section-header" data-aos="fade-up">
         <p class="section-label">Handpicked for You</p>
         <h2 class="section-title">Featured Collection</h2>
         <p class="section-desc">Each piece is individually crafted by our master artisans using traditional techniques passed down through generations.</p>
       </div>
-      <div class="product-grid" id="featured-grid"><div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted);">Loading...</div></div>
+      <div class="product-grid" id="featured-grid"><div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted);">Loading products...<br><small style="font-size:0.8rem;">If products don't appear, please check browser console (F12)</small></div></div>
       <div style="text-align:center;margin-top:2.5rem;">
         <button style="background:var(--terracotta);color:white;border:none;padding:.85rem 2rem;border-radius:var(--radius);font-family:'Karla',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:.05em;" onclick="showPage('shop')">View All Products →</button>
       </div>
@@ -84,7 +86,7 @@
   <section class="craft-section" id="our-story">
     <div class="section-inner">
       <div class="craft-grid">
-        <div>
+        <div data-aos="fade-right">
           <p class="section-label">Our Process</p>
           <h2 class="section-title" style="text-align:left;">From Clay to Craft</h2>
           <p style="color:var(--muted);margin:1rem 0 1.5rem;line-height:1.8;">Each Kuyavan pot begins as raw earth and becomes a piece of heritage — shaped, sun-dried, kiln-fired and hand-painted by our artisans in Tamil Nadu.</p>
@@ -155,7 +157,12 @@
 <!--  PRODUCT DETAIL PAGE                                            -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <div id="page-detail" class="page">
-  <section><div class="section-inner"><button class="back-btn" onclick="goBack()">← Back</button><div class="detail-grid" id="detail-content"></div></div></section>
+  <section>
+    <div class="section-inner">
+      <button class="back-btn" onclick="goBack()">← Back</button>
+      <div class="amazon-product-detail" id="detail-content"></div>
+    </div>
+  </section>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -444,10 +451,36 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<script>
+// Diagnostic script
+console.log('=== KUYAVAN DIAGNOSTICS ===');
+console.log('Page loaded at:', new Date().toISOString());
+console.log('User Agent:', navigator.userAgent);
+
+// Test if we can fetch products
+fetch('/api/products')
+  .then(r => r.json())
+  .then(data => {
+    console.log('API Test - Products loaded:', data.length || data.Count || 'unknown count');
+    if (data.value) console.log('Product names:', data.value.map(p => p.name));
+    else if (Array.isArray(data)) console.log('Product names:', data.map(p => p.name));
+  })
+  .catch(e => console.error('API Test - Error:', e));
+
+// Check if featured grid exists
+const grid = document.getElementById('featured-grid');
+console.log('Featured grid element:', grid ? 'FOUND' : 'NOT FOUND');
+if (grid) console.log('Grid innerHTML length:', grid.innerHTML.length);
+</script>
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+  AOS.init({
+    duration: 800,
+    easing: 'ease-out-cubic',
+    once: true,
+    offset: 50
+  });
+</script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
-
-
-
-

@@ -1,11 +1,13 @@
 from pathlib import Path
-
+from dotenv import load_dotenv
+load_dotenv()
 from flask import Flask, request, jsonify, session, render_template
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timedelta
+import jwt
 import os, random, string, uuid
 from flask import send_from_directory
 
@@ -65,13 +67,21 @@ class Product(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
+        # Calculate review statistics
+        review_count = len(self.reviews)
+        avg_rating = 0
+        if review_count > 0:
+            avg_rating = sum(r.rating for r in self.reviews) / review_count
+        
         return {
             'id': self.id, 'name': self.name, 'price': self.price,
             'category': self.category, 'stock': self.stock,
             'artisan': self.artisan, 'material': self.material,
             'size': self.size, 'care': self.care, 'desc': self.description,
             'stars': self.stars, 'visible': self.visible, 'type': self.type,
-            'image_url': self.image_path
+            'image_url': self.image_path,
+            'review_count': review_count,
+            'avg_rating': round(avg_rating, 1)
         }
 
 class Order(db.Model):
@@ -120,6 +130,30 @@ class OrderItem(db.Model):
             'product_type': self.product_type, 'price': self.price, 'quantity': self.quantity
         }
 
+class Review(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1-5 stars
+    title = db.Column(db.String(200))
+    content = db.Column(db.Text, nullable=False)
+    verified_purchase = db.Column(db.Boolean, default=False)
+    helpful_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    product = db.relationship('Product', backref=db.backref('reviews', lazy=True, cascade='all, delete-orphan'))
+    user = db.relationship('User', backref=db.backref('reviews', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'product_id': self.product_id, 'user_id': self.user_id,
+            'rating': self.rating, 'title': self.title, 'content': self.content,
+            'verified_purchase': self.verified_purchase, 'helpful_count': self.helpful_count,
+            'created_at': self.created_at.strftime('%d %b %Y'),
+            'user_name': self.user.name if self.user else 'Anonymous'
+        }
+
 # ─── HELPERS ──────────────────────────────────────────────────────
 
 @app.route('/')
@@ -140,6 +174,8 @@ def frontend_routes(path):
         return send_from_directory(STATIC_DIR, path.replace('static/', '', 1))
     if path.startswith('uploads/'):
         return send_from_directory(UPLOADS_DIR, path.replace('uploads/', '', 1))
+    if path.startswith('assets/uploads/'):
+        return send_from_directory(UPLOADS_DIR, path.replace('assets/uploads/', '', 1))
     return render_template('index.html')
 
 
@@ -149,8 +185,21 @@ def gen_order_code():
     return f'KUY-{year}-{suffix}'
 
 def require_admin():
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            if data.get('is_admin'):
+                return None
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Token has expired'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'error': 'Invalid token'}), 401
+            
+    # Fallback to session check for backward compatibility or strictness
     if not session.get('is_admin'):
-        return jsonify({'error': 'Admin access required'}), 403
+        return jsonify({'error': 'Admin token or access required'}), 403
     return None
 
 
@@ -204,53 +253,14 @@ def delete_product_image(image_path):
         os.remove(file_path)
 
 def seed_data():
-    """Seed initial products and admin user if DB is empty."""
+    """Seed admin user if DB is empty."""
+    admin_email = os.getenv('ADMIN_EMAIL', 'admin@kuyavan.in')
     if User.query.filter_by(is_admin=True).first():
         return
-    admin = User(name='Admin', email='admin@kuyavan.in',
-                 password_hash=generate_password_hash('admin123'), is_admin=True)
+    admin_password = os.getenv('ADMIN_PASSWORD', 'admin123')
+    admin = User(name='Admin', email=admin_email,
+                 password_hash=generate_password_hash(admin_password), is_admin=True)
     db.session.add(admin)
-
-    products = [
-        Product(name='Kaveri Water Pot', price=850, category='pots', stock=8, artisan='Murugan Kuyavar',
-                material='Terracotta', size='Large (5L)', care='Soak in water before first use',
-                description='A classic hand-thrown water pot crafted from fine Kaveri riverbed clay. Keeps water naturally cool and adds rustic elegance. Fired at 900°C for lasting durability.',
-                stars=5, type='large'),
-        Product(name='Mini Clay Pot Set', price=450, category='pots', stock=2, artisan='Selvi Rani',
-                material='Terracotta', size='Small (500ml)', care='Hand wash only',
-                description='A charming set of three small decorative pots, perfect for succulents, herbs, or dining table accents. Hand-painted with traditional kolam motifs.',
-                stars=4, type='small'),
-        Product(name='Terracotta Planter', price=1200, category='pots', stock=5, artisan='Murugan Kuyavar',
-                material='Terracotta', size='Medium (3L)', care='Allow drainage, avoid waterlogging',
-                description='A wide-mouth planter with a classic terracotta finish. Excellent drainage ensures healthy roots. Ideal for ferns and monstera.',
-                stars=5, type='large'),
-        Product(name='Clay Animal Toys', price=380, category='toys', stock=15, artisan='Lakshmi Kuyavar',
-                material='Clay + Natural Paint', size='10-15cm', care='Avoid water contact',
-                description='Hand-sculpted clay animals — elephant, cow, and horse — painted with non-toxic natural colours. A wonderful heirloom toy.',
-                stars=5, type='toy'),
-        Product(name='Spinning Top (Aatam)', price=220, category='toys', stock=20, artisan='Lakshmi Kuyavar',
-                material='Terracotta', size='8cm diameter', care='Store dry',
-                description='The traditional kuzhai aatam spinning top, crafted exactly as it has been for centuries in Tamil Nadu villages.',
-                stars=4, type='toy'),
-        Product(name='Clay Doll — Thalaiyatti', price=550, category='toys', stock=6, artisan='Lakshmi Kuyavar',
-                material='Clay + Natural Paint', size='20cm', care='Avoid moisture',
-                description='The iconic Thanjavur Thalaiyatti nodding-head doll. Hand-painted with vibrant traditional designs, this is a collector\'s piece.',
-                stars=5, type='toy'),
-        Product(name='Terracotta Diya Set', price=320, category='decor', stock=30, artisan='Selvi Rani',
-                material='Terracotta', size='8cm each', care='Wipe clean',
-                description='A set of 6 hand-shaped diyas with decorative ridged patterns. Ideal for Diwali, puja rooms, and everyday ambiance.',
-                stars=5, type='decor'),
-        Product(name='Wall Hanging — Sun Motif', price=980, category='decor', stock=4, artisan='Murugan Kuyavar',
-                material='Terracotta', size='30cm diameter', care='Indoor use only',
-                description='A stunning circular wall décor piece featuring an intricately carved sun motif. Hand-sculpted in relief technique.',
-                stars=4, type='decor'),
-        Product(name='Flower Vase — Kolam', price=750, category='decor', stock=7, artisan='Selvi Rani',
-                material='Terracotta', size='25cm tall', care='Water-resistant, hand wash',
-                description='A tall elegant vase featuring hand-drawn kolam patterns carved into the clay before firing.',
-                stars=5, type='decor'),
-    ]
-    for p in products:
-        db.session.add(p)
     db.session.commit()
 
 # ─── AUTH ROUTES ──────────────────────────────────────────────────
@@ -280,7 +290,18 @@ def login():
     session['user_id'] = user.id
     session['user_name'] = user.name
     session['is_admin'] = user.is_admin
-    return jsonify({'message': 'Login successful', 'user': {'id': user.id, 'name': user.name, 'email': user.email, 'is_admin': user.is_admin}})
+    
+    response_data = {'message': 'Login successful', 'user': {'id': user.id, 'name': user.name, 'email': user.email, 'is_admin': user.is_admin}}
+    
+    if user.is_admin:
+        token = jwt.encode({
+            'user_id': user.id,
+            'is_admin': True,
+            'exp': datetime.utcnow() + timedelta(hours=24)
+        }, app.config['SECRET_KEY'], algorithm="HS256")
+        response_data['token'] = token
+        
+    return jsonify(response_data)
 
 @app.route('/api/auth/logout', methods=['POST'])
 def logout():
@@ -387,6 +408,69 @@ def delete_product(pid):
     db.session.commit()
     return jsonify({'message': f'{p.name} deleted'})
 
+# ─── REVIEW ROUTES ─────────────────────────────────────────────────
+
+@app.route('/api/products/<int:pid>/reviews', methods=['GET'])
+def get_product_reviews(pid):
+    p = Product.query.get_or_404(pid)
+    reviews = Review.query.filter_by(product_id=pid).order_by(Review.created_at.desc()).all()
+    return jsonify([r.to_dict() for r in reviews])
+
+@app.route('/api/products/<int:pid>/reviews', methods=['POST'])
+def create_review(pid):
+    if not session.get('user_id'):
+        return jsonify({'error': 'Login required to write a review'}), 401
+    
+    p = Product.query.get_or_404(pid)
+    user_id = session['user_id']
+    data = request.get_json()
+    
+    if not data.get('rating') or not data.get('content'):
+        return jsonify({'error': 'Rating and content are required'}), 400
+    
+    if not (1 <= int(data['rating']) <= 5):
+        return jsonify({'error': 'Rating must be between 1 and 5'}), 400
+    
+    # Check if user already reviewed this product
+    existing_review = Review.query.filter_by(product_id=pid, user_id=user_id).first()
+    if existing_review:
+        return jsonify({'error': 'You have already reviewed this product'}), 409
+    
+    # Check if user has purchased this product (for verified purchase badge)
+    verified_purchase = False
+    user_orders = Order.query.filter_by(user_id=user_id).all()
+    for order in user_orders:
+        for item in order.items:
+            if item.product_id == pid:
+                verified_purchase = True
+                break
+        if verified_purchase:
+            break
+    
+    review = Review(
+        product_id=pid,
+        user_id=user_id,
+        rating=int(data['rating']),
+        title=data.get('title', ''),
+        content=data['content'],
+        verified_purchase=verified_purchase
+    )
+    db.session.add(review)
+    db.session.commit()
+    
+    return jsonify(review.to_dict()), 201
+
+@app.route('/api/reviews/<int:review_id>/helpful', methods=['POST'])
+def mark_review_helpful(review_id):
+    if not session.get('user_id'):
+        return jsonify({'error': 'Login required'}), 401
+    
+    review = Review.query.get_or_404(review_id)
+    review.helpful_count += 1
+    db.session.commit()
+    
+    return jsonify({'helpful_count': review.helpful_count})
+
 # ─── CART ROUTES (session-based) ─────────────────────────────────
 
 @app.route('/api/cart', methods=['GET'])
@@ -445,18 +529,12 @@ def remove_from_cart(pid):
     session.modified = True
     return jsonify({'message': 'Item removed', 'cart_count': sum(i['qty'] for i in cart)})
 
-@app.route('/api/cart/clear', methods=['POST'])
-def clear_cart():
-    session['cart'] = []
-    session.modified = True
-    return jsonify({'message': 'Cart cleared'})
-
 @app.route('/api/cart/count', methods=['GET'])
 def cart_count():
     cart = session.get('cart', [])
     return jsonify({'count': sum(i['qty'] for i in cart)})
 
-# ─── ORDER ROUTES ─────────────────────────────────────────────────
+# ─── ORDER ROUTES ────
 
 @app.route('/api/orders', methods=['POST'])
 def create_order():
@@ -519,21 +597,7 @@ def create_order():
 
     return jsonify({'message': 'Order placed!', 'order_code': code, 'total': total}), 201
 
-@app.route('/api/orders/my', methods=['GET'])
-def my_orders():
-    if not session.get('user_id'):
-        return jsonify([])
-    orders = Order.query.filter_by(user_id=session['user_id']).order_by(Order.created_at.desc()).all()
-    return jsonify([o.to_dict() for o in orders])
-
-@app.route('/api/orders/track/<code>', methods=['GET'])
-def track_order(code):
-    o = Order.query.filter_by(order_code=code).first()
-    if not o:
-        return jsonify({'error': 'Order not found'}), 404
-    return jsonify(o.to_dict())
-
-# ─── ADMIN ROUTES ─────────────────────────────────────────────────
+# ─── ADMIN ROUTES ────
 
 @app.route('/api/admin/orders', methods=['GET'])
 def admin_orders():
@@ -576,20 +640,6 @@ def admin_stats():
         'recent_orders': [o.to_dict() for o in recent],
         'low_stock': [p.to_dict() for p in low_stock]
     })
-
-@app.route('/api/admin/users', methods=['GET'])
-def admin_users():
-    err = require_admin()
-    if err: return err
-    users = User.query.all()
-    return jsonify([{'id': u.id, 'name': u.name, 'email': u.email,
-                     'is_admin': u.is_admin, 'created_at': u.created_at.strftime('%d %b %Y')} for u in users])
-
-# ─── HEALTH CHECK ─────────────────────────────────────────────────
-
-@app.route('/api/health', methods=['GET'])
-def health():
-    return jsonify({'status': 'ok', 'app': 'Kuyavan Pottery Studio API', 'version': '1.0'})
 
 # ─── INIT ─────────────────────────────────────────────────────────
 

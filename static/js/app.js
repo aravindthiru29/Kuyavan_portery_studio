@@ -1,6 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════
 //  CONFIG — Change API_BASE to match your Flask server URL
-// ═══════════════════════════════════════════════════════════════════
 const API_BASE = window.location.origin;
 const PAGE_ROUTES = {
   home: '/',
@@ -20,7 +18,9 @@ function getPotHtml(type, fill='#C4622D', size=80) {
 }
 function getBg(type){return type==='large'||type==='pots'||type==='small'?'#FFF0E8':type==='toy'||type==='toys'?'#FFF5E0':'#F0F4E8';}
 function getProductMedia(p, size=100, className='') {
-  if(p.image_url) return `<img src="${p.image_url}" alt="${p.name}" class="${className}">`;
+  if(p.image_url && !p.image_url.includes('Minimalist_Digital_Banner')) {
+    return `<img src="${p.image_url}" alt="${p.name}" class="${className}" onload="this.style.opacity='1'" onerror="this.style.display='none'; this.parentElement.innerHTML=getPotHtml('${p.type}', '#C4622D', ${size})">`;
+  }
   return getPotHtml(p.type,'#C4622D',size);
 }
 
@@ -31,6 +31,8 @@ async function api(path, options={}) {
     if(!(options.body instanceof FormData) && !headers['Content-Type']) {
       headers['Content-Type'] = 'application/json';
     }
+    const token = localStorage.getItem('admin_token');
+    if(token) headers['Authorization'] = 'Bearer ' + token;
     const res = await fetch(API_BASE+path, {
       credentials: 'include',
       headers,
@@ -46,7 +48,7 @@ async function api(path, options={}) {
 
 // ─── STATE ────────────────────────────────────────────────────────
 let currentPage='home', prevPage='home', shopCategory='all', cartItems=[];
-let currentUser=null, modalProdStars=5, deleteProdId=null;
+let currentUser=null, modalProdStars=5, deleteProdId=null, currentReviewRating=0;
 
 // ─── INIT ─────────────────────────────────────────────────────────
 async function init() {
@@ -67,6 +69,11 @@ function setUser(user) {
   const btn = document.getElementById('nav-auth-btn');
   if(user) { btn.textContent = '👤 '+user.name.split(' ')[0]; btn.onclick = logoutUser; }
   else { btn.textContent = 'Login / Register'; btn.onclick = openAuthModal; }
+  
+  const adminLink = document.getElementById('nav-admin-link');
+  if (adminLink) {
+    adminLink.style.display = (user && user.is_admin) ? 'inline-block' : 'none';
+  }
 }
 
 function initHeroArt() {
@@ -129,13 +136,19 @@ async function handleRouteChange(replace=false) {
     }
   }
 
-  const page = Object.entries(PAGE_ROUTES).find(([, route]) => route === path)?.[0] || 'home';
+  let page = Object.entries(PAGE_ROUTES).find(([, route]) => route === path)?.[0] || 'home';
+  if (page === 'admin' && (!currentUser || !currentUser.is_admin)) {
+    page = 'admin-login';
+  }
   showPage(page, { pushState: false });
   if(replace) updateHistory(getPathForPage(page), { page }, true);
 }
 
 function showPage(page, options={}) {
   const { pushState=true } = options;
+  if (page === 'admin' && (!currentUser || !currentUser.is_admin)) {
+    page = 'admin-login';
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   const hideNav = page==='admin'||page==='admin-login';
@@ -158,12 +171,12 @@ function filterCategory(cat){shopCategory=cat;showPage('shop');}
 function renderProductCard(p) {
   return `<div class="product-card" onclick="viewProduct(${p.id})">
     <div class="product-img" style="background:${getBg(p.type)}">
-      ${getProductMedia(p,100)}
+      ${getProductMedia(p,80)}
       <span class="product-badge badge-handmade">Handmade</span>
       ${p.stock<=3?`<span class="product-badge badge-stock" style="top:12px;left:auto;right:12px;">Only ${p.stock} left</span>`:''}
     </div>
     <div class="product-info">
-      <div class="star-rating">${'★'.repeat(p.stars||5)}${'☆'.repeat(5-(p.stars||5))}</div>
+      <div class="star-rating">${'★'.repeat(Number(p.stars)||5)}${'☆'.repeat(5-(Number(p.stars)||5))}</div>
       <div class="product-name">${p.name}</div>
       <div class="product-artisan">by <span>${p.artisan||'Artisan'}</span></div>
       <div class="product-footer">
@@ -176,11 +189,20 @@ function renderProductCard(p) {
 
 async function loadFeatured() {
   const grid = document.getElementById('featured-grid');
+  console.log('loadFeatured called');
   try {
     const prods = await api('/api/products');
-    const featured = prods.filter(p=>p.stars===5).slice(0,4);
+    console.log('Products loaded:', prods);
+    console.log('Product stars values:', prods.map(p => ({name: p.name, stars: p.stars, type: typeof p.stars})));
+    const featured = prods.filter(p=>Number(p.stars)===5).slice(0,4);
+    console.log('Featured products:', featured);
+    console.log('Featured count:', featured.length);
     grid.innerHTML = featured.length ? featured.map(renderProductCard).join('') : '<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:3rem;">No products yet.</p>';
-  } catch(e){ grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:2rem;">Could not load products. Is the Flask server running?<br><small style="font-size:.8rem;">${e.message}</small></p>`; }
+    console.log('Featured grid HTML updated');
+  } catch(e){ 
+    console.error('Error loading featured:', e);
+    grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:2rem;">Could not load products. Is the Flask server running?<br><small style="font-size:.8rem;">${e.message}</small></p>`; 
+  }
 }
 
 async function loadShopProducts() {
@@ -208,29 +230,402 @@ function filterProducts(){ clearTimeout(searchTimeout); searchTimeout=setTimeout
 
 async function viewProduct(id, options={}) {
   const { pushState=true } = options;
+  console.log('viewProduct called with id:', id);
   try {
     const p = await api('/api/products/'+id);
+    console.log('Product loaded:', p);
+    const reviews = await api('/api/products/'+id+'/reviews');
+    console.log('Reviews loaded:', reviews);
     const catLabels = {pots:'Clay Pots', toys:'Clay Toys', decor:'Terracotta Decor'};
+    
+    // Calculate rating breakdown
+    const ratingBreakdown = [5,4,3,2,1].map(rating => ({
+      rating,
+      count: reviews.filter(rev => rev.rating === rating).length,
+      percentage: reviews.length > 0 ? (reviews.filter(rev => rev.rating === rating).length / reviews.length * 100).toFixed(0) : 0
+    }));
+    
     document.getElementById('detail-content').innerHTML = `
-      <div class="detail-img-main" style="background:${getBg(p.type)}">${getProductMedia(p,160)}</div>
-      <div>
-        <div class="detail-category">${(catLabels[p.category]||p.category).toUpperCase()}</div>
-        <h1 class="detail-name">${p.name}</h1>
-        <div class="detail-artisan">Crafted by <strong>${p.artisan||'Our Artisan'}</strong></div>
-        <div class="star-rating" style="margin-bottom:1rem;">${'★'.repeat(p.stars||5)}${'☆'.repeat(5-(p.stars||5))}</div>
-        <div class="detail-price">₹${Number(p.price).toLocaleString('en-IN')}</div>
-        <p class="detail-desc">${p.desc||''}</p>
-        <div class="detail-specs">
-          <div class="spec-row"><span class="spec-label">Material</span><span class="spec-val">${p.material||'—'}</span></div>
-          <div class="spec-row"><span class="spec-label">Size</span><span class="spec-val">${p.size||'—'}</span></div>
-          <div class="spec-row"><span class="spec-label">Stock</span><span class="spec-val" style="color:${p.stock<=3?'#E65100':'var(--success)'}">${p.stock<=3?'Only '+p.stock+' left':p.stock+' available'}</span></div>
-          <div class="spec-row"><span class="spec-label">Care</span><span class="spec-val">${p.care||'—'}</span></div>
+      <div class="product-detail-container">
+        <!-- Product Header -->
+        <div class="product-header">
+          <div class="breadcrumb">
+            <a onclick="showPage('home')">Home</a> / 
+            <a onclick="showPage('shop')">Shop</a> / 
+            <span>${p.name}</span>
+          </div>
         </div>
-        <button class="detail-add" onclick="addToCart(${p.id},'${p.name}');openCart()">Add to Cart →</button>
-      </div>`;
+        
+        <!-- Main Product Grid -->
+        <div class="product-main-grid">
+          <!-- Product Images -->
+          <div class="product-gallery">
+            <div class="main-product-image">
+              ${p.image_url && !p.image_url.includes('Minimalist_Digital_Banner') ? 
+                `<img src="${p.image_url}" alt="${p.name}" class="detail-product-img" onclick="openImageZoom('${p.image_url}')" onload="this.classList.add('loaded')" onerror="this.classList.add('error'); this.style.display='none'; this.parentElement.innerHTML='<div class=&quot;product-placeholder&quot; style=&quot;background:${getBg('${p.type}')}&quot;>' + getPotHtml('${p.type}', '#C4622D', 300) + '</div>'">
+                <div class="zoom-overlay" onclick="openImageZoom('${p.image_url}')">
+                  <span>🔍 Click to zoom</span>
+                </div>` : 
+                `<div class="product-placeholder" style="background:${getBg(p.type)}">${getPotHtml(p.type, '#C4622D', 300)}</div>`
+              }
+            </div>
+            <div class="product-thumbnails">
+              ${p.image_url && !p.image_url.includes('Minimalist_Digital_Banner') ? 
+                `<div class="thumbnail active" onclick="changeMainImage('${p.image_url}')">
+                  <img src="${p.image_url}" alt="${p.name}">
+                </div>` : ''
+              }
+              <div class="thumbnail" onclick="changeMainImage('')">
+                <div class="thumbnail-placeholder" style="background:${getBg(p.type)}">${getPotHtml(p.type, '#C4622D', 60)}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Product Information -->
+          <div class="product-info">
+            <div class="product-category">${catLabels[p.category] || p.category}</div>
+            <h1 class="product-name">${p.name}</h1>
+            
+            <div class="product-rating">
+              <div class="stars">
+                ${generateStars(p.avg_rating || p.stars || 5)}
+                <span class="rating-text">(${p.review_count || 0} reviews)</span>
+              </div>
+              <a href="#reviews" class="reviews-link" onclick="scrollToReviews()">Write a review</a>
+            </div>
+            
+            <div class="product-price">
+              <span class="price">₹${Number(p.price).toLocaleString('en-IN')}</span>
+              <span class="tax-info">Inclusive of all taxes</span>
+            </div>
+            
+            <div class="product-description">
+              <h3>Description</h3>
+              <p>${p.desc || 'A beautiful handcrafted pottery piece from Kuyavan Pottery Studio. Each piece is carefully crafted by skilled artisans using traditional techniques passed down through generations.'}</p>
+            </div>
+            
+            <div class="product-details">
+              <div class="detail-row">
+                <span class="detail-label">Artisan:</span>
+                <span class="detail-value">${p.artisan || 'Master Artisan'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Material:</span>
+                <span class="detail-value">${p.material || 'Premium Terracotta'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Size:</span>
+                <span class="detail-value">${p.size || 'Standard Size'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Care:</span>
+                <span class="detail-value">${p.care || 'Handle with care, hand wash recommended'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Availability:</span>
+                <span class="detail-value stock-status ${p.stock <= 3 ? 'low-stock' : 'in-stock'}">
+                  ${p.stock <= 3 ? `Only ${p.stock} left` : 'In Stock'}
+                </span>
+              </div>
+            </div>
+            
+            <div class="purchase-actions">
+              <button class="btn-add-cart" onclick="addToCart(${p.id}, '${p.name}'); openCart()">
+                <span class="btn-icon">🛒</span>
+                Add to Cart
+              </button>
+              <button class="btn-buy-now" onclick="buyNow(${p.id})">
+                <span class="btn-icon">⚡</span>
+                Buy Now
+              </button>
+            </div>
+            
+            <div class="product-features">
+              <div class="feature">
+                <span class="feature-icon">✓</span>
+                <span>Handmade with love</span>
+              </div>
+              <div class="feature">
+                <span class="feature-icon">✓</span>
+                <span>Premium terracotta clay</span>
+              </div>
+              <div class="feature">
+                <span class="feature-icon">✓</span>
+                <span>Traditional craftsmanship</span>
+              </div>
+              <div class="feature">
+                <span class="feature-icon">✓</span>
+                <span>Eco-friendly packaging</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Reviews Section -->
+        <div class="reviews-section" id="reviews">
+          <div class="reviews-header">
+            <h2>Customer Reviews</h2>
+            <div class="reviews-summary">
+              <div class="overall-rating">
+                <div class="rating-number">${p.avg_rating || p.stars || 5}</div>
+                <div class="rating-stars">${generateStars(p.avg_rating || p.stars || 5)}</div>
+                <div class="total-reviews">${p.review_count || 0} reviews</div>
+              </div>
+              <div class="rating-distribution">
+                ${ratingBreakdown.map(rb => `
+                  <div class="rating-bar">
+                    <span class="rating-stars-label">${rb.rating}★</span>
+                    <div class="progress-bar">
+                      <div class="progress-fill" style="width: ${rb.percentage}%"></div>
+                    </div>
+                    <span class="rating-count">${rb.count}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+          
+          <div class="write-review">
+            ${currentUser ? 
+              `<button class="btn-write-review" onclick="openReviewModal(${p.id})">Write a Review</button>` :
+              `<p>Please <a onclick="openAuthModal()">login</a> to write a review</p>`
+            }
+          </div>
+          
+          <div class="reviews-list">
+            ${reviews.length > 0 ? reviews.map(review => `
+              <div class="review-card">
+                <div class="review-header">
+                  <div class="reviewer-info">
+                    <div class="reviewer-name">${review.user_name}</div>
+                    <div class="review-date">${review.created_at}</div>
+                    ${review.verified_purchase ? '<span class="verified-badge">✓ Verified Purchase</span>' : ''}
+                  </div>
+                  <div class="review-rating">${generateStars(review.rating)}</div>
+                </div>
+                ${review.title ? `<h4 class="review-title">${review.title}</h4>` : ''}
+                <p class="review-content">${review.content}</p>
+                <div class="review-actions">
+                  <button class="btn-helpful" onclick="markHelpful(${review.id})">
+                    👍 Helpful (${review.helpful_count})
+                  </button>
+                  <button class="btn-report">Report</button>
+                </div>
+              </div>
+            `).join('') : '<div class="no-reviews">No reviews yet. Be the first to review this product!</div>'}
+          </div>
+        </div>
+      </div>
+    `;
+    
+    console.log('Rendering product detail page...');
     showPage('detail', { pushState: false });
+    console.log('Product detail page shown');
     if(pushState) updateHistory('/products/'+id, { page: 'detail', productId: id });
-  } catch(e){ showToast('Could not load product.', 'error'); }
+  } catch(e){ 
+    console.error('Error in viewProduct:', e);
+    showToast('Could not load product.', 'error'); 
+  }
+}
+
+// Helper function to generate star rating HTML
+function generateStars(rating) {
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 !== 0;
+  let stars = '';
+  
+  for(let i = 1; i <= 5; i++) {
+    if(i <= fullStars) {
+      stars += '<span class="star filled">★</span>';
+    } else if(i === fullStars + 1 && hasHalfStar) {
+      stars += '<span class="star half">★</span>';
+    } else {
+      stars += '<span class="star empty">★</span>';
+    }
+  }
+  
+  return stars;
+}
+
+function changeMainImage(imageUrl) {
+  const mainImageContainer = document.querySelector('.main-product-image');
+  const productType = document.querySelector('.product-placeholder') ? 
+    document.querySelector('.product-placeholder').style.background.match(/getBg\(([^)]+)\)/)?.[1] : 'large';
+  
+  if(imageUrl && !imageUrl.includes('Minimalist_Digital_Banner')) {
+    mainImageContainer.innerHTML = `
+      <img src="${imageUrl}" alt="Product image" class="detail-product-img" onclick="openImageZoom('${imageUrl}')" onload="this.classList.add('loaded')" onerror="this.classList.add('error'); this.style.display='none'; this.parentElement.innerHTML='<div class=&quot;product-placeholder&quot; style=&quot;background:${getBg(productType)}&quot;>' + getPotHtml('${productType}', '#C4622D', 300) + '</div>'">
+      <div class="zoom-overlay" onclick="openImageZoom('${imageUrl}')">
+        <span>🔍 Click to zoom</span>
+      </div>
+    `;
+  } else {
+    mainImageContainer.innerHTML = `
+      <div class="product-placeholder" style="background:${getBg(productType)}">${getPotHtml(productType, '#C4622D', 300)}</div>
+    `;
+  }
+  
+  // Update thumbnail active state
+  document.querySelectorAll('.thumbnail').forEach(thumb => thumb.classList.remove('active'));
+  if(event && event.target) {
+    event.target.closest('.thumbnail').classList.add('active');
+  }
+}
+
+function openImageZoom(imageUrl) {
+  if(!imageUrl) return;
+  
+  // Create modal for zoomed image
+  const modal = document.createElement('div');
+  modal.className = 'image-zoom-modal';
+  modal.innerHTML = `
+    <div class="zoom-modal-content">
+      <button class="zoom-close" onclick="closeImageZoom()">×</button>
+      <img src="${imageUrl}" alt="Product zoom view" class="zoom-image">
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  modal.style.display = 'flex';
+  
+  // Close on background click
+  modal.addEventListener('click', (e) => {
+    if(e.target === modal) closeImageZoom();
+  });
+  
+  // Close on escape key
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') closeImageZoom();
+  });
+}
+
+function closeImageZoom() {
+  const modal = document.querySelector('.image-zoom-modal');
+  if(modal) {
+    document.body.removeChild(modal);
+  }
+}
+
+function scrollToReviews() {
+  const reviewsSection = document.getElementById('reviews');
+  if(reviewsSection) {
+    reviewsSection.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+function buyNow(productId) {
+  // Add to cart and go to checkout
+  addToCart(productId, '').then(() => {
+    showPage('checkout');
+  });
+}
+
+// Review Modal Functions
+function openReviewModal(productId) {
+  const modal = document.createElement('div');
+  modal.className = 'review-modal';
+  modal.innerHTML = `
+    <div class="review-modal-content">
+      <div class="review-modal-header">
+        <h3>Write a Review</h3>
+        <button class="close-btn" onclick="closeReviewModal()">×</button>
+      </div>
+      <div class="review-form">
+        <div class="form-group">
+          <label>Rating *</label>
+          <div class="star-rating-input">
+            ${[1,2,3,4,5].map(star => `
+              <button type="button" class="star-btn" data-rating="${star}" onclick="setReviewRating(${star})">★</button>
+            `).join('')}
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Title (Optional)</label>
+          <input type="text" id="review-title" placeholder="Summarize your review">
+        </div>
+        <div class="form-group">
+          <label>Review *</label>
+          <textarea id="review-content" rows="5" placeholder="Share your experience with this product..."></textarea>
+        </div>
+        <div class="review-actions">
+          <button class="submit-review-btn" onclick="submitReview(${productId})">Submit Review</button>
+          <button class="cancel-btn" onclick="closeReviewModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  modal.style.display = 'flex';
+  currentReviewRating = 0;
+}
+
+function closeReviewModal() {
+  const modal = document.querySelector('.review-modal');
+  if (modal) {
+    document.body.removeChild(modal);
+  }
+  currentReviewRating = 0;
+}
+
+function setReviewRating(rating) {
+  currentReviewRating = rating;
+  document.querySelectorAll('.star-btn').forEach((btn, index) => {
+    btn.classList.toggle('active', index < rating);
+  });
+}
+
+async function submitReview(productId) {
+  if (!currentReviewRating) {
+    showToast('Please select a rating', 'error');
+    return;
+  }
+  
+  const title = document.getElementById('review-title').value.trim();
+  const content = document.getElementById('review-content').value.trim();
+  
+  if (!content) {
+    showToast('Please write a review', 'error');
+    return;
+  }
+  
+  try {
+    const review = await api('/api/products/' + productId + '/reviews', {
+      method: 'POST',
+      body: JSON.stringify({
+        rating: currentReviewRating,
+        title: title,
+        content: content
+      })
+    });
+    
+    showToast('Review submitted successfully!', 'success');
+    closeReviewModal();
+    // Refresh the product page to show the new review
+    viewProduct(productId, { pushState: false });
+  } catch(e) {
+    showToast(e.message || 'Failed to submit review', 'error');
+  }
+}
+
+async function markHelpful(reviewId) {
+  try {
+    const result = await api('/api/reviews/' + reviewId + '/helpful', {
+      method: 'POST'
+    });
+    
+    // Update the helpful count in the UI
+    const helpfulBtn = document.querySelector(`[onclick="markHelpful(${reviewId})"]`);
+    if (helpfulBtn) {
+      helpfulBtn.innerHTML = `👍 Helpful (${result.helpful_count})`;
+      helpfulBtn.disabled = true;
+      helpfulBtn.style.opacity = '0.6';
+    }
+    
+    showToast('Marked as helpful', 'success');
+  } catch(e) {
+    showToast(e.message || 'Failed to mark as helpful', 'error');
+  }
 }
 
 // ─── CART ─────────────────────────────────────────────────────────
@@ -310,13 +705,25 @@ function goToCheckout() {
 
 // ─── CHECKOUT ─────────────────────────────────────────────────────
 async function renderCheckoutSummary() {
+  const itemsDiv = document.getElementById('checkout-items');
+  const totalDiv = document.getElementById('checkout-total');
   try {
     cartItems = await api('/api/cart');
-    let total=0, html='';
-    cartItems.forEach(i=>{ total+=i.price*i.qty; html+=`<div class="summary-item"><span>${i.name} × ${i.qty}</span><span>₹${(i.price*i.qty).toLocaleString('en-IN')}</span></div>`; });
-    document.getElementById('checkout-items').innerHTML = html||'<p style="color:var(--muted);">No items</p>';
-    document.getElementById('checkout-total').textContent = '₹'+total.toLocaleString('en-IN');
-  } catch(e){}
+    let total = 0, html = '';
+    cartItems.forEach(i => {
+      const itemPrice = Number(i.price) || 0;
+      const itemQty = Number(i.qty) || 0;
+      const subtotal = itemPrice * itemQty;
+      total += subtotal;
+      html += `<div class="summary-item"><span>${i.name} × ${i.qty}</span><span>₹${subtotal.toLocaleString('en-IN')}</span></div>`;
+    });
+    itemsDiv.innerHTML = html || '<p style="color:var(--muted);text-align:center;padding:1rem;">Your cart is empty.</p>';
+    totalDiv.textContent = '₹' + total.toLocaleString('en-IN');
+    console.log('Checkout summary rendered. Total:', total, 'Items:', cartItems.length);
+  } catch(e) {
+    console.error('Error rendering checkout summary:', e);
+    itemsDiv.innerHTML = `<p class="api-error">Could not load cart items: ${e.message}</p>`;
+  }
   if(currentUser) {
     document.getElementById('co-email').value = currentUser.email||'';
     const names = (currentUser.name||'').split(' ');
@@ -377,6 +784,7 @@ async function submitAuth() {
   errDiv.style.display='none';
   try {
     const r = await api('/api/auth/login', {method:'POST', body:JSON.stringify({email,password})});
+    if(r.token) localStorage.setItem('admin_token', r.token);
     setUser(r.user); closeAuthModal(); showToast('Welcome back, '+r.user.name+'!', 'success');
   } catch(e){ errDiv.textContent=e.message; errDiv.style.display='block'; }
 }
@@ -396,6 +804,7 @@ async function submitRegister() {
 
 async function logoutUser() {
   try { await api('/api/auth/logout', {method:'POST'}); } catch(e){}
+  localStorage.removeItem('admin_token');
   setUser(null); showToast('Logged out successfully.', 'success');
 }
 
@@ -408,12 +817,14 @@ async function adminLogin() {
   try {
     const r = await api('/api/auth/login', {method:'POST', body:JSON.stringify({email,password:pass})});
     if(!r.user.is_admin){ errDiv.innerHTML='<div class="api-error">Not an admin account.</div>'; return; }
+    if(r.token) localStorage.setItem('admin_token', r.token);
     setUser(r.user); showPage('admin');
   } catch(e){ errDiv.innerHTML=`<div class="api-error">${e.message}</div>`; }
 }
 
 async function adminLogout() {
   try { await api('/api/auth/logout', {method:'POST'}); } catch(e){}
+  localStorage.removeItem('admin_token');
   setUser(null); showPage('home');
 }
 
@@ -702,7 +1113,3 @@ function showToast(msg,type=''){
 
 // ─── START ────────────────────────────────────────────────────────
 init();
-
-
-
-
